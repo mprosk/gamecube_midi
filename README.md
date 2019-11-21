@@ -4,7 +4,51 @@ GameCube controller to MIDI HID via Teensy 3.2
 
 
 
-## Notes
+# GameCube Controller Protocol
+
+## Pinout
+
+```
+Socket on the front of the console
+
+    #################
+   #       |_7_|       #
+  #                     #
+ #    ___   ___   ___    #
+#    | 1 | | 2 | | 3 |    #
+#    █████████████████    #
+#    █████████████████    #
+#    |_4_| |_5_| |_6_|    #
+ #                       #
+  #                     #
+   #                   #
+	  ##            ##
+	     ##########
+```
+
+| Pin  | Color  | Function                                                    |
+| ---- | ------ | ----------------------------------------------------------- |
+| 1    | Yellow | +5V for rumble motor                                        |
+| 2    | Red    | Bi-directional data line. Pull up to 3.3V with 1k resistor. |
+| 3    | Green  | Ground                                                      |
+| 4    | White  | Ground (sometimes common with Pin 3)                        |
+| 5    | -      | N/C                                                         |
+| 6    | Blue   | +3.3V for logic                                             |
+| 7    | Black  | Cable shield                                                |
+
+Source:  http://www.int03.co.uk/crema/hardware/gamecube/gc-control.html 
+
+
+
+## Protocol
+
+
+
+
+
+
+
+# Reference
 
 ### GameCube Protocol
 
