@@ -11,7 +11,7 @@ GameCube controller to MIDI HID via Teensy 3.2
 ```
 Socket on the front of the console
 
-    #################
+     #################
    #       |_7_|       #
   #                     #
  #    ___   ___   ___    #
@@ -22,8 +22,8 @@ Socket on the front of the console
  #                       #
   #                     #
    #                   #
-	  ##            ##
-	     ##########
+     ##             ##
+        ###########
 ```
 
 | Pin  | Color  | Function                                                    |
