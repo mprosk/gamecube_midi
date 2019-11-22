@@ -215,7 +215,27 @@ void loop(void)
     gc_request_status(GC1_TX);
     gc_read_status(GC1_RX);
     gc_parse_status();
-    gc_print_status();
+    
+    if(1)
+    {
+      gc_print_status();
+    }
+    else
+    {
+      Serial.print(gc_joy_x);
+      Serial.print(" ");
+      Serial.print(gc_joy_y);
+//      Serial.print(" ");
+//      Serial.print(gc_cstick_x);
+//      Serial.print(" ");
+//      Serial.print(gc_cstick_y);
+//      Serial.print(" ");
+//      Serial.print(gc_ltrig);
+//      Serial.print(" ");
+//      Serial.print(gc_rtrig);
+      Serial.println();
+      Serial.flush();
+    }
     delay(12);
   }
 }
