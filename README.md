@@ -22,7 +22,7 @@ Socket on the front of the console
  #                       #
   #                     #
    #                   #
-	  ##            ##
+      ##            ##
 	     ##########
 ```
 

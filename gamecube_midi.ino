@@ -114,12 +114,20 @@ void gc_parse_status(void)
   gc_btn_d_right = gc_data_buffer[14+gc_offset];
   gc_btn_d_left  = gc_data_buffer[15+gc_offset];
   
-  gc_joy_x    = gc_slice_byte((2*8)-1+gc_offset);
-  gc_joy_y    = gc_slice_byte((3*8)-1+gc_offset);
-  gc_cstick_x = gc_slice_byte((4*8)-1+gc_offset);
-  gc_cstick_y = gc_slice_byte((5*8)-1+gc_offset);
-  gc_ltrig    = gc_slice_byte((6*8)-1+gc_offset);
-  gc_rtrig    = gc_slice_byte((7*8)-1+gc_offset);
+  gc_joy_x    = gc_slice_byte((2*8)+gc_offset);
+  gc_joy_y    = gc_slice_byte((3*8)+gc_offset);
+  gc_cstick_x = gc_slice_byte((4*8)+gc_offset);
+  gc_cstick_y = gc_slice_byte((5*8)+gc_offset);
+  gc_ltrig    = gc_slice_byte((6*8)+gc_offset);
+  gc_rtrig    = gc_slice_byte((7*8)+gc_offset);
+
+//  gc_print_slice((2*8)+gc_offset);
+//  gc_print_slice((3*8)+gc_offset);
+//  gc_print_slice((4*8)+gc_offset);
+//  gc_print_slice((5*8)+gc_offset);
+//  gc_print_slice((6*8)+gc_offset);
+//  gc_print_slice((7*8)+gc_offset);
+//  Serial.println("----------");
 }
 
 uint8_t gc_slice_byte(uint8_t b_start)
@@ -127,9 +135,18 @@ uint8_t gc_slice_byte(uint8_t b_start)
   uint8_t out = 0;
   for(uint8_t i = 0; i < 8; i++)
   {
-    out |= gc_data_buffer[b_start + i] << i;
+    out |= gc_data_buffer[b_start + i] << (7 - i);
   }
   return out;
+}
+
+void gc_print_slice(uint8_t b_start)
+{
+  for(uint8_t i = b_start; i < b_start + 8; i++)
+  {
+    Serial.print(gc_data_buffer[i]);
+  }
+  Serial.println();
 }
 
 void gc_isr(void)
@@ -150,7 +167,7 @@ void gc_print_status(void)
   Serial.print("ST: ");     Serial.println(gc_btn_start);
   Serial.print("Y:  ");     Serial.println(gc_btn_y);
   Serial.print("X:  ");     Serial.println(gc_btn_x);
-  Serial.print("B:  ");     Serial.println(gc_btn_b);
+  Serial.print("B:  ");     Serial.println(gc_btn_b); 
   Serial.print("A:  ");     Serial.println(gc_btn_a);
   Serial.print("LT: ");     Serial.println(gc_btn_lt);
   Serial.print("RT: ");     Serial.println(gc_btn_rt);
