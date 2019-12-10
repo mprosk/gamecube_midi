@@ -89,23 +89,28 @@ void gc_get_status(uint8_t tx_pin, uint8_t rx_pin)
 
   // PART 2: Retrieve status report from controller
   gc_data_pointer = 0;
-  delayMicroseconds(1);
-  //unsigned long break_time = micros() + 300;
+  //delayMicroseconds(1);
+  unsigned long count = 0;
   for(uint8_t i = 0; i < 64; i++)
   {
+    count = 0;
+    while(digitalReadFast(rx_pin) == 1)   // wait for pin to go low
+    {
+      count++;
+      if(count > 10000) {break;}
+    };
     delayMicroseconds(2);   // adjust as needed
     digitalWriteFast(ISR_STATUS_PIN, HIGH);
     gc_data_buffer[gc_data_pointer] = digitalReadFast(rx_pin);
     digitalWriteFast(ISR_STATUS_PIN, LOW);
     gc_data_pointer++;
+    count = 0;
     while(digitalReadFast(rx_pin) == 0)   // wait for pin to go high
     {
-      //if(micros() > break_time) {break;}
+      count++;
+      if(count > 10000) {break;}
     };  
-    while(digitalReadFast(rx_pin) == 1)   // wait for pin to go low
-    {
-        //if(micros() > break_time) {break;}
-    };
+    
   }
   interrupts();   // Be sure to re-enable interrupts or the USB stuff breaks
 
