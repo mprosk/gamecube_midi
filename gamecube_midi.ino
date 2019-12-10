@@ -40,8 +40,7 @@ static uint8_t gc_read_pin = 0;
 void gc_low(uint8_t pin);
 void gc_high(uint8_t pin);
 void gc_stop_bit(uint8_t pin);
-void gc_request_status(uint8_t pin);
-void gc_read_status(uint8_t pin);
+void gc_get_status(uint8_t tx_pin, uint8_t rx_pin);
 void gc_parse_status(void);
 uint8_t gc_slice_byte(uint8_t b_start);
 void gc_isr(void);
@@ -74,60 +73,62 @@ void gc_stop_bit(uint8_t pin)
 }
 
 // Send the 24-'byte' sequence to request the controller's status
-void gc_request_status(uint8_t pin)
+void gc_get_status(uint8_t tx_pin, uint8_t rx_pin)
 {
-  // If there is too much slop here, replace the functions with #def macros
-  noInterrupts();
-  gc_low(pin);  gc_high(pin); gc_low(pin);  gc_low(pin);  // 0100
-  gc_low(pin);  gc_low(pin);  gc_low(pin);  gc_low(pin);  // 0000
-  gc_low(pin);  gc_low(pin);  gc_low(pin);  gc_low(pin);  // 0000
-  gc_low(pin);  gc_low(pin);  gc_high(pin); gc_high(pin); // 0011
-  gc_low(pin);  gc_low(pin);  gc_low(pin);  gc_low(pin);  // 0000
-  gc_low(pin);  gc_low(pin);  gc_low(pin);  gc_low(pin);  // 000r   r=rumble
-  gc_stop_bit(pin);                                       // stop bit
-  interrupts();
-}
-
-void gc_read_status(uint8_t pin)
-{
-  gc_data_pointer = 0;
-  gc_read_pin = pin;
-  attachInterrupt(digitalPinToInterrupt(pin), gc_isr, FALLING);
-  delayMicroseconds(300);
-  detachInterrupt(digitalPinToInterrupt(pin));
-}
-
-void gc_parse_status(void)
-{
-  int8_t gc_offset = (gc_data_pointer % 8) - 1;
-    
-  gc_btn_start   = gc_data_buffer[3+gc_offset];
-  gc_btn_y       = gc_data_buffer[4+gc_offset];
-  gc_btn_x       = gc_data_buffer[5+gc_offset];
-  gc_btn_b       = gc_data_buffer[6+gc_offset];
-  gc_btn_a       = gc_data_buffer[7+gc_offset];
-  gc_btn_lt      = gc_data_buffer[9+gc_offset];
-  gc_btn_rt      = gc_data_buffer[10+gc_offset];
-  gc_btn_z       = gc_data_buffer[11+gc_offset];
-  gc_btn_d_up    = gc_data_buffer[12+gc_offset];
-  gc_btn_d_down  = gc_data_buffer[13+gc_offset];
-  gc_btn_d_right = gc_data_buffer[14+gc_offset];
-  gc_btn_d_left  = gc_data_buffer[15+gc_offset];
+  noInterrupts();   // Disable interrupts to prevent distractions during time-critical operation
   
-  gc_joy_x    = gc_slice_byte((2*8)+gc_offset);
-  gc_joy_y    = gc_slice_byte((3*8)+gc_offset);
-  gc_cstick_x = gc_slice_byte((4*8)+gc_offset);
-  gc_cstick_y = gc_slice_byte((5*8)+gc_offset);
-  gc_ltrig    = gc_slice_byte((6*8)+gc_offset);
-  gc_rtrig    = gc_slice_byte((7*8)+gc_offset);
+  // PART 1: Send status request to controller
+  // If there is too much slop here, replace the functions with #def macros
+  gc_low(tx_pin);  gc_high(tx_pin); gc_low(tx_pin);  gc_low(tx_pin);  // 0100
+  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 0000
+  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 0000
+  gc_low(tx_pin);  gc_low(tx_pin);  gc_high(tx_pin); gc_high(tx_pin); // 0011
+  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 0000
+  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 000r   r=rumble
+  gc_stop_bit(tx_pin);                                       // stop bit
 
-//  gc_print_slice((2*8)+gc_offset);
-//  gc_print_slice((3*8)+gc_offset);
-//  gc_print_slice((4*8)+gc_offset);
-//  gc_print_slice((5*8)+gc_offset);
-//  gc_print_slice((6*8)+gc_offset);
-//  gc_print_slice((7*8)+gc_offset);
-//  Serial.println("----------");
+  // PART 2: Retrieve status report from controller
+  gc_data_pointer = 0;
+  delayMicroseconds(1);
+  //unsigned long break_time = micros() + 300;
+  for(uint8_t i = 0; i < 64; i++)
+  {
+    delayMicroseconds(2);   // adjust as needed
+    digitalWriteFast(ISR_STATUS_PIN, HIGH);
+    gc_data_buffer[gc_data_pointer] = digitalReadFast(rx_pin);
+    digitalWriteFast(ISR_STATUS_PIN, LOW);
+    gc_data_pointer++;
+    while(digitalReadFast(rx_pin) == 0)   // wait for pin to go high
+    {
+      //if(micros() > break_time) {break;}
+    };  
+    while(digitalReadFast(rx_pin) == 1)   // wait for pin to go low
+    {
+        //if(micros() > break_time) {break;}
+    };
+  }
+  interrupts();   // Be sure to re-enable interrupts or the USB stuff breaks
+
+  // PART 3: Parse status into data structure
+  gc_btn_start   = gc_data_buffer[3];
+  gc_btn_y       = gc_data_buffer[4];
+  gc_btn_x       = gc_data_buffer[5];
+  gc_btn_b       = gc_data_buffer[6];
+  gc_btn_a       = gc_data_buffer[7];
+  gc_btn_lt      = gc_data_buffer[9];
+  gc_btn_rt      = gc_data_buffer[10];
+  gc_btn_z       = gc_data_buffer[11];
+  gc_btn_d_up    = gc_data_buffer[12];
+  gc_btn_d_down  = gc_data_buffer[13];
+  gc_btn_d_right = gc_data_buffer[14];
+  gc_btn_d_left  = gc_data_buffer[15];
+  
+  gc_joy_x    = gc_slice_byte(2*8);
+  gc_joy_y    = gc_slice_byte(3*8);
+  gc_cstick_x = gc_slice_byte(4*8);
+  gc_cstick_y = gc_slice_byte(5*8);
+  gc_ltrig    = gc_slice_byte(6*8);
+  gc_rtrig    = gc_slice_byte(7*8);
 }
 
 uint8_t gc_slice_byte(uint8_t b_start)
@@ -151,11 +152,8 @@ void gc_print_slice(uint8_t b_start)
 
 void gc_isr(void)
 {
-  delayMicroseconds(1);   // adjust as needed
-  digitalWriteFast(ISR_STATUS_PIN, HIGH);
-  gc_data_buffer[gc_data_pointer] = digitalReadFast(gc_read_pin);
-  digitalWriteFast(ISR_STATUS_PIN, LOW);
-  gc_data_pointer++;
+  noInterrupts();
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -163,7 +161,6 @@ void gc_isr(void)
 
 void gc_print_status(void)
 {
-  Serial.print("OFFSET: ");     Serial.println(gc_data_pointer % 8);
   Serial.print("ST: ");     Serial.println(gc_btn_start);
   Serial.print("Y:  ");     Serial.println(gc_btn_y);
   Serial.print("X:  ");     Serial.println(gc_btn_x);
@@ -212,9 +209,7 @@ void loop(void)
 { 
   while(1)
   {
-    gc_request_status(GC1_TX);
-    gc_read_status(GC1_RX);
-    gc_parse_status();
+    gc_get_status(GC1_TX, GC1_RX);
     
     if(1)
     {
