@@ -6,27 +6,6 @@
 #define ISR_STATUS_PIN 10
 
 
-// GLOBALS
-static bool gc_btn_start = 0;
-static bool gc_btn_x = 0;
-static bool gc_btn_y = 0;
-static bool gc_btn_a = 0;
-static bool gc_btn_b = 0;
-static bool gc_btn_lt = 0;
-static bool gc_btn_rt = 0;
-static bool gc_btn_z = 0;
-static bool gc_btn_d_up = 0;
-static bool gc_btn_d_down = 0;
-static bool gc_btn_d_left = 0;
-static bool gc_btn_d_right = 0;
-static uint8_t gc_joy_x = 0;
-static uint8_t gc_joy_y = 0;
-static uint8_t gc_cstick_x = 0;
-static uint8_t gc_cstick_y = 0;
-static uint8_t gc_ltrig = 0;
-static uint8_t gc_rtrig = 0;
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // GAMECUBE CONTROLLER
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,15 +14,45 @@ static uint8_t gc_rtrig = 0;
 static volatile uint8_t gc_data_pointer = 0;
 static volatile uint8_t gc_data_buffer[8 * 9];
 
+// STRUCTURE DECLARATION
+typedef struct GameCube
+{
+  // Internal
+  uint8_t id;         // Identifier
+  uint8_t tx_pin;     // Pin to transmit messages on
+  uint8_t rx_pin;     // Pin to receive messages on
+  bool valid;         // Was the update valid
+  
+  // Controller State
+  bool btn_start;     // Start button
+  bool btn_y;         // Y button
+  bool btn_x;         // X button
+  bool btn_b;         // B button
+  bool btn_a;         // A button
+  bool btn_lt;        // Left Trigger button
+  bool btn_rt;        // Right Trigger button
+  bool btn_z;         // Z button
+  bool btn_d_up;      // D-Pad Up
+  bool btn_d_down;    // D-Pad Down
+  bool btn_d_right;   // D-Pad Right
+  bool btn_d_left;    // D-Pad Left
+  uint8_t joy_x;      // Joystick X (Analog)
+  uint8_t joy_y;      // Joystick Y (Analog)
+  uint8_t cstick_x;   // C-Stick X (Analog)
+  uint8_t cstick_y;   // C-Stick Y (Analog)
+  uint8_t ltrig;      // Left Trigger (Analog)
+  uint8_t rtrig;      // Right Trigger (Analog)
+}
+GameCube;
+
 // FUNCTION DECLARATIONS
 void gc_low(uint8_t pin);
 void gc_high(uint8_t pin);
 void gc_stop_bit(uint8_t pin);
-void gc_get_status(uint8_t tx_pin, uint8_t rx_pin);
+void gc_get_status(GameCube* gc);
 void gc_parse_status(void);
 uint8_t gc_slice_byte(uint8_t b_start);
-void gc_isr(void);
-void gc_print_status(void);
+void gc_print_status(GameCube* gc);
 
 ////////////////////////////////////////////////////////////////////////////////
 // GAMECUBE CONTROLLER PRIVATE FUNCTIONS
@@ -72,19 +81,19 @@ void gc_stop_bit(uint8_t pin)
 }
 
 // Send the 24-'byte' sequence to request the controller's status
-void gc_get_status(uint8_t tx_pin, uint8_t rx_pin)
-{
+void gc_get_status(GameCube* gc)
+{ 
   noInterrupts();   // Disable interrupts to prevent distractions during time-critical operation
   
   // PART 1: Send status request to controller
   // If there is too much slop here, replace the functions with #def macros
-  gc_low(tx_pin);  gc_high(tx_pin); gc_low(tx_pin);  gc_low(tx_pin);  // 0100
-  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 0000
-  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 0000
-  gc_low(tx_pin);  gc_low(tx_pin);  gc_high(tx_pin); gc_high(tx_pin); // 0011
-  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 0000
-  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  gc_low(tx_pin);  // 000r   r=rumble
-  gc_stop_bit(tx_pin);                                       // stop bit
+  gc_low(gc->tx_pin);  gc_high(gc->tx_pin); gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  // 0100
+  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  // 0000
+  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  // 0000
+  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_high(gc->tx_pin); gc_high(gc->tx_pin); // 0011
+  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  // 0000
+  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  gc_low(gc->tx_pin);  // 000r   r=rumble
+  gc_stop_bit(gc->tx_pin);                                       // stop bit
 
   // PART 2: Retrieve status report from controller
   gc_data_pointer = 0;
@@ -92,18 +101,18 @@ void gc_get_status(uint8_t tx_pin, uint8_t rx_pin)
   for(uint8_t i = 0; i < 64; i++)
   {
     count = 0;
-    while(digitalReadFast(rx_pin) == 1)   // wait for pin to go low
+    while(digitalReadFast(gc->rx_pin) == 1)   // wait for pin to go low
     {
       count++;
       if(count > 10000) {break;}
     };
     delayMicroseconds(2);   // adjust as needed
     digitalWriteFast(ISR_STATUS_PIN, HIGH);
-    gc_data_buffer[gc_data_pointer] = digitalReadFast(rx_pin);
+    gc_data_buffer[gc_data_pointer] = digitalReadFast(gc->rx_pin);
     digitalWriteFast(ISR_STATUS_PIN, LOW);
     gc_data_pointer++;
     count = 0;
-    while(digitalReadFast(rx_pin) == 0)   // wait for pin to go high
+    while(digitalReadFast(gc->rx_pin) == 0)   // wait for pin to go high
     {
       count++;
       if(count > 10000) {break;}
@@ -113,25 +122,25 @@ void gc_get_status(uint8_t tx_pin, uint8_t rx_pin)
   interrupts();   // Be sure to re-enable interrupts or the USB stuff breaks
 
   // PART 3: Parse status into data structure
-  gc_btn_start   = gc_data_buffer[3];
-  gc_btn_y       = gc_data_buffer[4];
-  gc_btn_x       = gc_data_buffer[5];
-  gc_btn_b       = gc_data_buffer[6];
-  gc_btn_a       = gc_data_buffer[7];
-  gc_btn_lt      = gc_data_buffer[9];
-  gc_btn_rt      = gc_data_buffer[10];
-  gc_btn_z       = gc_data_buffer[11];
-  gc_btn_d_up    = gc_data_buffer[12];
-  gc_btn_d_down  = gc_data_buffer[13];
-  gc_btn_d_right = gc_data_buffer[14];
-  gc_btn_d_left  = gc_data_buffer[15];
-  
-  gc_joy_x    = gc_slice_byte(2*8);
-  gc_joy_y    = gc_slice_byte(3*8);
-  gc_cstick_x = gc_slice_byte(4*8);
-  gc_cstick_y = gc_slice_byte(5*8);
-  gc_ltrig    = gc_slice_byte(6*8);
-  gc_rtrig    = gc_slice_byte(7*8);
+  gc->btn_start   = gc_data_buffer[3];
+  gc->btn_y       = gc_data_buffer[4];
+  gc->btn_x       = gc_data_buffer[5];
+  gc->btn_b       = gc_data_buffer[6];
+  gc->btn_a       = gc_data_buffer[7];
+  gc->btn_lt      = gc_data_buffer[9];
+  gc->btn_rt      = gc_data_buffer[10];
+  gc->btn_z       = gc_data_buffer[11];
+  gc->btn_d_up    = gc_data_buffer[12];
+  gc->btn_d_down  = gc_data_buffer[13];
+  gc->btn_d_right = gc_data_buffer[14];
+  gc->btn_d_left  = gc_data_buffer[15];
+
+  gc->joy_x    = gc_slice_byte(2*8) & (~0x01);
+  gc->joy_y    = gc_slice_byte(3*8) & (~0x01);
+  gc->cstick_x = gc_slice_byte(4*8) & (~0x01);
+  gc->cstick_y = gc_slice_byte(5*8) & (~0x01);
+  gc->ltrig    = gc_slice_byte(6*8) & (~0x01);
+  gc->rtrig    = gc_slice_byte(7*8) & (~0x01);
 }
 
 uint8_t gc_slice_byte(uint8_t b_start)
@@ -162,26 +171,26 @@ void gc_isr(void)
 ////////////////////////////////////////////////////////////////////////////////
 // GAMECUBE CONTROLLER PUBLIC FUNCTIONS
 
-void gc_print_status(void)
+void gc_print_status(GameCube* gc)
 {
-  Serial.print("ST: ");     Serial.println(gc_btn_start);
-  Serial.print("Y:  ");     Serial.println(gc_btn_y);
-  Serial.print("X:  ");     Serial.println(gc_btn_x);
-  Serial.print("B:  ");     Serial.println(gc_btn_b); 
-  Serial.print("A:  ");     Serial.println(gc_btn_a);
-  Serial.print("LT: ");     Serial.println(gc_btn_lt);
-  Serial.print("RT: ");     Serial.println(gc_btn_rt);
-  Serial.print("Z:  ");     Serial.println(gc_btn_z);
-  Serial.print("DU: ");     Serial.println(gc_btn_d_up);
-  Serial.print("DD: ");     Serial.println(gc_btn_d_down);
-  Serial.print("DR: ");     Serial.println(gc_btn_d_right);
-  Serial.print("DL: ");     Serial.println(gc_btn_d_left);
-  Serial.print("JOY X: ");  Serial.println(gc_joy_x);
-  Serial.print("JOY Y: ");  Serial.println(gc_joy_y);
-  Serial.print("C X:   ");  Serial.println(gc_cstick_x);
-  Serial.print("C Y:   ");  Serial.println(gc_cstick_y);
-  Serial.print("LTRIG: ");  Serial.println(gc_ltrig);
-  Serial.print("RTRIG: ");  Serial.println(gc_rtrig);
+  Serial.print("ST: ");     Serial.println(gc->btn_start);
+  Serial.print("Y:  ");     Serial.println(gc->btn_y);
+  Serial.print("X:  ");     Serial.println(gc->btn_x);
+  Serial.print("B:  ");     Serial.println(gc->btn_b); 
+  Serial.print("A:  ");     Serial.println(gc->btn_a);
+  Serial.print("LT: ");     Serial.println(gc->btn_lt);
+  Serial.print("RT: ");     Serial.println(gc->btn_rt);
+  Serial.print("Z:  ");     Serial.println(gc->btn_z);
+  Serial.print("DU: ");     Serial.println(gc->btn_d_up);
+  Serial.print("DD: ");     Serial.println(gc->btn_d_down);
+  Serial.print("DR: ");     Serial.println(gc->btn_d_right);
+  Serial.print("DL: ");     Serial.println(gc->btn_d_left);
+  Serial.print("JOY X: ");  Serial.println(gc->joy_x);
+  Serial.print("JOY Y: ");  Serial.println(gc->joy_y);
+  Serial.print("C X:   ");  Serial.println(gc->cstick_x);
+  Serial.print("C Y:   ");  Serial.println(gc->cstick_y);
+  Serial.print("LTRIG: ");  Serial.println(gc->ltrig);
+  Serial.print("RTRIG: ");  Serial.println(gc->rtrig);
   Serial.println("------------");
 }
 
@@ -210,30 +219,15 @@ void setup(void)
 
 void loop(void)
 { 
+  GameCube gc1;
+  gc1.id = 1;
+  gc1.tx_pin = GC1_TX;
+  gc1.rx_pin = GC1_RX;
+  
   while(1)
   {
-    gc_get_status(GC1_TX, GC1_RX);
-    
-    if(1)
-    {
-      gc_print_status();
-    }
-    else
-    {
-      Serial.print(gc_joy_x);
-      Serial.print(" ");
-      Serial.print(gc_joy_y);
-//      Serial.print(" ");
-//      Serial.print(gc_cstick_x);
-//      Serial.print(" ");
-//      Serial.print(gc_cstick_y);
-//      Serial.print(" ");
-//      Serial.print(gc_ltrig);
-//      Serial.print(" ");
-//      Serial.print(gc_rtrig);
-      Serial.println();
-      Serial.flush();
-    }
-    delay(12);
+    gc_get_status(&gc1);
+    gc_print_status(&gc1);
+    delay(6);
   }
 }
