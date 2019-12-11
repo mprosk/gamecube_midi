@@ -34,7 +34,6 @@ static uint8_t gc_rtrig = 0;
 // PRIVATE VARIABLES
 static volatile uint8_t gc_data_pointer = 0;
 static volatile uint8_t gc_data_buffer[8 * 9];
-static uint8_t gc_read_pin = 0;
 
 // FUNCTION DECLARATIONS
 void gc_low(uint8_t pin);
@@ -89,7 +88,6 @@ void gc_get_status(uint8_t tx_pin, uint8_t rx_pin)
 
   // PART 2: Retrieve status report from controller
   gc_data_pointer = 0;
-  //delayMicroseconds(1);
   unsigned long count = 0;
   for(uint8_t i = 0; i < 64; i++)
   {
