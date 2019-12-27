@@ -6,6 +6,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 static volatile uint8_t gc_data_pointer = 0;
 static volatile uint8_t gc_data_buffer[8 * 9];
+static const uint8_t gc_buffer_mapping[] = {3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15};
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -102,25 +103,15 @@ void gc_read_status(GameCube* gc)
 
 void gc_parse_status(GameCube* gc)
 {
-  gc->btn_start   = gc_data_buffer[3];
-  gc->btn_y       = gc_data_buffer[4];
-  gc->btn_x       = gc_data_buffer[5];
-  gc->btn_b       = gc_data_buffer[6];
-  gc->btn_a       = gc_data_buffer[7];
-  gc->btn_lt      = gc_data_buffer[9];
-  gc->btn_rt      = gc_data_buffer[10];
-  gc->btn_z       = gc_data_buffer[11];
-  gc->btn_d_up    = gc_data_buffer[12];
-  gc->btn_d_down  = gc_data_buffer[13];
-  gc->btn_d_right = gc_data_buffer[14];
-  gc->btn_d_left  = gc_data_buffer[15];
+  for (uint8_t i = 0; i < GC_BUTTON_COUNT; i++)
+  {
+    gc->buttons[i] = gc_data_buffer[gc_buffer_mapping[i]];
+  }
 
-  gc->joy_x    = gc_slice_byte(2*8) & (~0x01);
-  gc->joy_y    = gc_slice_byte(3*8) & (~0x01);
-  gc->cstick_x = gc_slice_byte(4*8) & (~0x01);
-  gc->cstick_y = gc_slice_byte(5*8) & (~0x01);
-  gc->ltrig    = gc_slice_byte(6*8) & (~0x01);
-  gc->rtrig    = gc_slice_byte(7*8) & (~0x01);
+  for (uint8_t i = 0; i < GC_ANALOG_COUNT; i++)
+  {
+    gc->analog[i] = gc_slice_byte((i + 2) * 8) & (~0x01);
+  }
 }
 
 
@@ -165,23 +156,23 @@ void gc_print_status(GameCube* gc)
 {
   Serial.print("ID: ");     Serial.println(gc->id);
   Serial.print("VALID: ");  Serial.println(gc->valid);
-  Serial.print("ST: ");     Serial.println(gc->btn_start);
-  Serial.print("Y:  ");     Serial.println(gc->btn_y);
-  Serial.print("X:  ");     Serial.println(gc->btn_x);
-  Serial.print("B:  ");     Serial.println(gc->btn_b); 
-  Serial.print("A:  ");     Serial.println(gc->btn_a);
-  Serial.print("LT: ");     Serial.println(gc->btn_lt);
-  Serial.print("RT: ");     Serial.println(gc->btn_rt);
-  Serial.print("Z:  ");     Serial.println(gc->btn_z);
-  Serial.print("DU: ");     Serial.println(gc->btn_d_up);
-  Serial.print("DD: ");     Serial.println(gc->btn_d_down);
-  Serial.print("DR: ");     Serial.println(gc->btn_d_right);
-  Serial.print("DL: ");     Serial.println(gc->btn_d_left);
-  Serial.print("JOY X: ");  Serial.println(gc->joy_x);
-  Serial.print("JOY Y: ");  Serial.println(gc->joy_y);
-  Serial.print("C X:   ");  Serial.println(gc->cstick_x);
-  Serial.print("C Y:   ");  Serial.println(gc->cstick_y);
-  Serial.print("LTRIG: ");  Serial.println(gc->ltrig);
-  Serial.print("RTRIG: ");  Serial.println(gc->rtrig);
+  Serial.print("ST: ");     Serial.println(gc->buttons[0]);
+  Serial.print("Y:  ");     Serial.println(gc->buttons[1]);
+  Serial.print("X:  ");     Serial.println(gc->buttons[2]);
+  Serial.print("B:  ");     Serial.println(gc->buttons[3]); 
+  Serial.print("A:  ");     Serial.println(gc->buttons[4]);
+  Serial.print("LT: ");     Serial.println(gc->buttons[5]);
+  Serial.print("RT: ");     Serial.println(gc->buttons[6]);
+  Serial.print("Z:  ");     Serial.println(gc->buttons[7]);
+  Serial.print("DU: ");     Serial.println(gc->buttons[8]);
+  Serial.print("DD: ");     Serial.println(gc->buttons[9]);
+  Serial.print("DR: ");     Serial.println(gc->buttons[10]);
+  Serial.print("DL: ");     Serial.println(gc->buttons[11]);
+  Serial.print("JOY X: ");  Serial.println(gc->analog[0]);
+  Serial.print("JOY Y: ");  Serial.println(gc->analog[1]);
+  Serial.print("C X:   ");  Serial.println(gc->analog[2]);
+  Serial.print("C Y:   ");  Serial.println(gc->analog[3]);
+  Serial.print("LTRIG: ");  Serial.println(gc->analog[4]);
+  Serial.print("RTRIG: ");  Serial.println(gc->analog[5]);
   Serial.println("------------");
 }

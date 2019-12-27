@@ -3,7 +3,9 @@
 
 #include "Arduino.h"
 
-#define ISR_STATUS_PIN 10
+#define ISR_STATUS_PIN    (10)    
+#define GC_BUTTON_COUNT   (12)    // Number of digital signals (butotns) the GameCube controller has 
+#define GC_ANALOG_COUNT   (6)     // Number of analog signals (joysticks) the GameCube controller has
 
 ////////////////////////////////////////////////////////////////////////////////
 // STRUCTURE DECLARATIONS
@@ -18,24 +20,8 @@ typedef struct GameCube
   bool valid;         // Was the update valid
   
   // Controller State
-  bool btn_start;     // Start button
-  bool btn_y;         // Y button
-  bool btn_x;         // X button
-  bool btn_b;         // B button
-  bool btn_a;         // A button
-  bool btn_lt;        // Left Trigger button
-  bool btn_rt;        // Right Trigger button
-  bool btn_z;         // Z button
-  bool btn_d_up;      // D-Pad Up
-  bool btn_d_down;    // D-Pad Down
-  bool btn_d_right;   // D-Pad Right
-  bool btn_d_left;    // D-Pad Left
-  uint8_t joy_x;      // Joystick X (Analog)
-  uint8_t joy_y;      // Joystick Y (Analog)
-  uint8_t cstick_x;   // C-Stick X (Analog)
-  uint8_t cstick_y;   // C-Stick Y (Analog)
-  uint8_t ltrig;      // Left Trigger (Analog)
-  uint8_t rtrig;      // Right Trigger (Analog)
+  uint8_t buttons[GC_BUTTON_COUNT];
+  uint8_t analog[GC_ANALOG_COUNT];
 }
 GameCube;
 

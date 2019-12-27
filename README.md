@@ -42,9 +42,18 @@ Source:  http://www.int03.co.uk/crema/hardware/gamecube/gc-control.html
 
 ## Protocol
 
+|            | Bit 0 | Bit 1 | Bit 2 | Bit 3 | Bit 4 | Bit 5  | Bit 6   | Bit 7  |
+| ---------- | ----- | ----- | ----- | ----- | ----- | ------ | ------- | ------ |
+| **Byte 0** | 0     | 0     | 0     | Start | Y     | X      | B       | A      |
+| **Byte 1** | 1     | L     | R     | Z     | D-Up  | D-Down | D-Right | D-Left |
+| **Byte 2** | Joystick X Value MSB                                |Joy X Bit 6|Joy X Bit 5|Joy X Bit 4|Joy X Bit 3|Joy X Bit 2|Joy X Bit 1|Joy X LSB|
+| **Byte 3** | Joystick Y Value MSB | Joy Y Bit 6 | Joy Y Bit 5 | Joy Y Bit 4 | Joy Y Bit 3 | Joy Y Bit 2 | Joy Y Bit 1 | Joy Y LSB |
+| **Byte 4** | C-Stick X Value MSB | C-Stick X Bit 6 | C-Stick X Bit 5 | C-Stick X Bit 4 | C-Stick X Bit 3 | C-Stick X Bit 2 | C-Stick X Bit 1 | C-Stick X LSB |
+| **Byte 5** | C-Stick Y Value MSB | C-Stick Y Bit 6 | C-Stick Y Bit 5 | C-Stick Y Bit 4 | C-Stick Y Bit 3 | C-Stick Y Bit 2 | C-Stick Y Bit 1 | C-Stick Y LSB |
+| **Byte 6** | Left Trigger Value MSB | L-Trig Bit 6 | L-Trig Bit 5 | L-Trig Bit 4 | L-Trig Bit 3 | L-Trig Bit 2 | L-Trig Bit 1 | L-Trig LSB |
+| **Byte 7** | Right Trigger Value MSB | R-Trig Bit 6 | R-Trig Bit 5 | R-Trig Bit 4 | R-Trig Bit 3 | R-Trig Bit 2 | R-Trig Bit 1 | R-Trig LSB |
 
-
-
+Source:  http://www.int03.co.uk/crema/hardware/gamecube/gc-control.html 
 
 
 
